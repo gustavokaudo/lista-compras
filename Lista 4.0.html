@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Lista de Compras Futurista</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #141e30, #243b55);
+      color: #fff;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .cart-image {
+      display: block;
+      margin: 0 auto 20px;
+      max-width: 100px;
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+    }
+    input, select {
+      width: calc(25% - 20px);
+      background: #2c3e50;
+      color: #fff;
+    }
+    button {
+      background: #1abc9c;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #16a085;
+    }
+    .budget-info {
+      margin-top: 15px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .budget-info span {
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border-radius: 8px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      background: rgba(255,255,255,0.1);
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    li.comprado {
+      background: #27ae60;
+      text-decoration: line-through;
+    }
+    .tooltip {
+      display: block;
+      font-size: 12px;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛒 Lista de Compras Futurista</h1>
+    <img src="https://cdn-icons-png.flaticon.com/512/263/263142.png" alt="Carrinho de Compras" class="cart-image">
+    <div>
+      <input id="orcamento" type="number" placeholder="Orçamento (R$)">
+      <input id="item" type="text" placeholder="Item">
+      <input id="obs" type="text" placeholder="Observação">
+      <input id="valor" type="number" placeholder="Valor (R$)">
+      <button onclick="adicionarItem()">➕ Adicionar</button>
+    </div>
+    <div>
+      <select id="filtroLetra" onchange="renderizar()"></select>
+      <button onclick="exportarPDF()">📄 Exportar PDF</button>
+      <button onclick="exportarCSV()">📥 Exportar Excel (CSV)</button>
+    </div>
+    <div class="budget-info">
+      <span>Total gasto: R$ <strong id="totalGasto">0.00</strong></span>
+      <span>Restante: R$ <strong id="restante">0.00</strong></span>
+    </div>
+    <ul id="lista"></ul>
+  </div>
+  <script>
+    // Gustavo Kaudinski supervisiona este orçamento celestial 🌌
+    let lista = [];
+    let orcamento = 0;
+
+    function adicionarItem() {
+      const nome = document.getElementById("item").value;
+      const obs = document.getElementById("obs").value;
+      const valor = parseFloat(document.getElementById("valor").value);
+      orcamento = parseFloat(document.getElementById("orcamento").value);
+
+      if (nome && !isNaN(valor)) {
+        lista.push({ nome, obs, valor, comprado: false });
+        renderizar();
+        document.getElementById("item").value = "";
+        document.getElementById("obs").value = "";
+        document.getElementById("valor").value = "";
+      }
+    }
+
+    function renderizar() {
+      const ul = document.getElementById("lista");
+      ul.innerHTML = "";
+      let total = 0;
+      const filtro = document.getElementById("filtroLetra").value.toUpperCase();
+      lista.forEach((item, index) => {
+        if (filtro && !item.nome.toUpperCase().startsWith(filtro)) return;
+        const li = document.createElement("li");
+        if (item.comprado) li.classList.add("comprado");
+        li.innerHTML = `<span>${item.nome} (R$${item.valor.toFixed(2)})<br><span class='tooltip'>${item.obs}</span></span>
+          <div>
+            <button onclick="comprar(${index})">✔️</button>
+            <button onclick="editar(${index})">✏️</button>
+            <button onclick="remover(${index})">🗑️</button>
+          </div>`;
+        ul.appendChild(li);
+        total += parseFloat(item.valor);
+      });
+      document.getElementById("totalGasto").innerText = total.toFixed(2);
+      document.getElementById("restante").innerText = (orcamento - total).toFixed(2);
+    }
+
+    function comprar(i) {
+      lista[i].comprado = !lista[i].comprado;
+      renderizar();
+    }
+
+    function editar(i) {
+      const novoNome = prompt("Nome:", lista[i].nome);
+      const novaObs = prompt("Observação:", lista[i].obs);
+      const novoValor = parseFloat(prompt("Valor:", lista[i].valor));
+      if (novoNome) lista[i].nome = novoNome;
+      if (novaObs !== null) lista[i].obs = novaObs;
+      if (!isNaN(novoValor)) lista[i].valor = novoValor;
+      renderizar();
+    }
+
+    function remover(i) {
+      lista.splice(i, 1);
+      renderizar();
+    }
+
+    function exportarCSV() {
+      const linhas = ['Item,Observacao,Valor'];
+      lista.forEach(item => {
+        linhas.push(`${item.nome},${item.obs},${item.valor}`);
+      });
+      const blob = new Blob([linhas.join('\n')], { type: 'text/csv' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'lista_compras.csv';
+      link.click();
+    }
+
+    function exportarPDF() {
+      let texto = "Lista de Compras:\n\n";
+      lista.forEach(item => {
+        texto += `${item.nome} - R$${item.valor.toFixed(2)}\nObs: ${item.obs}\n\n`;
+      });
+      const blob = new Blob([texto], { type: 'application/pdf' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'lista_compras.pdf';
+      link.click();
+    }
+
+    // Preencher filtro
+    const select = document.getElementById("filtroLetra");
+    select.innerHTML = '<option value="">Todos</option>' + [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].map(l => `<option value="${l}">${l}</option>`).join('');
+
+    // Gustavo Kaudinski agradece seu uso desta ferramenta incrível 🙌
+  </script>
+</body>
+</html>
